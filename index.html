@@ -1,0 +1,73 @@
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+        <input type="text" id="todo-input"/> <button id="action">Save</button>
+        <ul id="todo-list">
+        </ul>
+        <script>
+            // to differentiate between save and update, reset after using
+            var oldValue, oldTarget;
+
+            // to get todos for 1st time after page loading (GET request)
+            $.ajax({
+                url: "http://localhost:3333/todo"
+            }).done(function(todos) {
+                todos.forEach(todo => {                    
+                    $("#todo-list").append("<li><span class='todo'>" + todo + "</span><button class='delete'>X</button>  </li>");
+                });
+            });
+
+            // Binding Click handler on <UL> to listen on delete click and also click on todo item for editing
+            $("#todo-list").on('click', function(){
+                var target = event.target;
+                // checking for target class to determine which element is clicked
+                if(target.className == "delete") {
+                    $.ajax({
+                        method: "DELETE",
+                        url: "http://localhost:3333/todo",
+                        data: { todo: $(target).siblings()[0].textContent }
+                    })
+                    .done(function( res ) {
+                       target.parentElement.remove()
+                    });
+                }
+                else if(target.className == "todo"){
+                    oldValue = target.textContent;
+                    oldTarget = target;
+                    document.querySelector("#todo-input").value = target.textContent;
+                }
+            })
+
+            // Binding click on Save button
+            $("#action").on('click', function(e){
+                // Assuming that when we want to update, we click on todo item and oldvalue is populated
+                if(oldValue) {
+                    $.ajax({
+                        method: "PUT",
+                        url: "http://localhost:3333/todo",
+                        data: { old: oldValue, new: document.querySelector("#todo-input").value }
+                    })
+                    .done(function( res ) {
+                        oldTarget.textContent = res;
+                        document.querySelector("#todo-input").value = "";
+                        oldValue = null;
+                        oldTarget = null;
+                    });
+                }   
+                else {
+                    $.ajax({
+                        method: "POST",
+                        url: "http://localhost:3333/todo",
+                        data: { todo: document.querySelector("#todo-input").value }
+                    })
+                    .done(function( res ) {
+                        $("#todo-list").append("<li><span class='todo'>" + res + "</span><button class='delete'>X</button>  </li>");
+                        document.querySelector("#todo-input").value = "";
+                    });
+                }
+            })             
+        </script>
+    </body>
+</html>
